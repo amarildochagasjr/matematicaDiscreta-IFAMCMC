@@ -10,7 +10,6 @@ def exportar_prova_latex(passos, caminho="prova_atual.tex", titulo="Prova do arg
     ]
 
     for num, formula, justificativa in passos:
-        # Escapa barras invertidas e underline se aparecerem
         formula_tex = formula.replace("\\", r"\\").replace("_", r"\_")
         justificativa_tex = justificativa.replace("\\", r"\\").replace("_", r"\_")
 

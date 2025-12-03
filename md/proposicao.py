@@ -55,22 +55,21 @@ def analisar_formula(texto: str):
 
 def formatar_formula(expr):
     """Converte expressão SymPy para string estilo P -> Q, P v Q, ~P etc."""
-    # variável proposicional (símbolo)
     if hasattr(expr, "is_Symbol") and expr.is_Symbol:
         return expr.name
-    # negação
+
     if isinstance(expr, Not):
         return f"~{formatar_formula(expr.args[0])}"
-    # conjunção
+
     if isinstance(expr, And):
         return " & ".join(formatar_formula(a) for a in expr.args)
-    # disjunção
+
     if isinstance(expr, Or):
         return " v ".join(formatar_formula(a) for a in expr.args)
-    # condicional
+
     if isinstance(expr, Implies):
         return f"{formatar_formula(expr.args[0])} -> {formatar_formula(expr.args[1])}"
-    # bicondicional
+
     if isinstance(expr, Equivalent):
         return f"{formatar_formula(expr.args[0])} <-> {formatar_formula(expr.args[1])}"
     return str(expr)
@@ -136,7 +135,7 @@ def tabela_verdade(premissas_str, conclusao_str):
 
 # ---------- FORMAS DE INFERÊNCIA E FALÁCIAS ----------
 
-def eh_modus_ponens(premissas_str, conclusao_str):
+def modus_ponens(premissas_str, conclusao_str):
     if len(premissas_str) != 2:
         return False
     a, b = [analisar_formula(p) for p in premissas_str]
@@ -146,7 +145,7 @@ def eh_modus_ponens(premissas_str, conclusao_str):
         (isinstance(b, Implies) and b.args[0] == a and conclusao == b.args[1])
     )
 
-def eh_modus_tollens(premissas_str, conclusao_str):
+def modus_tollens(premissas_str, conclusao_str):
     if len(premissas_str) != 2:
         return False
     a, b = [analisar_formula(p) for p in premissas_str]
@@ -158,18 +157,37 @@ def eh_modus_tollens(premissas_str, conclusao_str):
          and b.args[1] == a.args[0] and b.args[0] == conclusao.args[0])
     )
 
-def eh_silogismo_hipotetico(premissas_str, conclusao_str):
-    if len(premissas_str) != 2:
-        return False
-    a, b = [analisar_formula(p) for p in premissas_str]
+def silogismo_hipotetico(premissas_str, conclusao_str):
     conclusao = analisar_formula(conclusao_str)
-    if isinstance(a, Implies) and isinstance(b, Implies) and isinstance(conclusao, Implies):
-        return a.args[1] == b.args[0] and a.args[0] == conclusao.args[0] and b.args[1] == conclusao.args[1]
-    if isinstance(b, Implies) and isinstance(a, Implies) and isinstance(conclusao, Implies):
-        return b.args[1] == a.args[0] and b.args[0] == conclusao.args[0] and a.args[1] == conclusao.args[1]
+
+    if len(premissas_str) == 2:
+        a, b = [analisar_formula(p) for p in premissas_str]
+        if isinstance(a, Implies) and isinstance(b, Implies) and isinstance(conclusao, Implies):
+            return a.args[1] == b.args[0] and a.args[0] == conclusao.args[0] and b.args[1] == conclusao.args[1]
+        if isinstance(b, Implies) and isinstance(a, Implies) and isinstance(conclusao, Implies):
+            return b.args[1] == a.args[0] and b.args[0] == conclusao.args[0] and a.args[1] == conclusao.args[1]
+        return False
+
+    if len(premissas_str) == 3:
+        f1, f2, f3 = [analisar_formula(p) for p in premissas_str]
+        imps = [f for f in (f1, f2, f3) if isinstance(f, Implies)]
+        at = [f for f in (f1, f2, f3) if not isinstance(f, Implies)]
+        if len(imps) != 2 or len(at) != 1:
+            return False
+        a, b = imps
+        p = at[0]
+
+        return (
+            isinstance(conclusao, type(p)) and
+            a.args[1] == b.args[0] and
+            p == a.args[0] and
+            conclusao == b.args[1]
+        )
+
     return False
 
-def eh_silogismo_disjuntivo(premissas_str, conclusao_str):
+
+def silogismo_disjuntivo(premissas_str, conclusao_str):
     if len(premissas_str) != 2:
         return False
     a, b = [analisar_formula(p) for p in premissas_str]
@@ -183,7 +201,7 @@ def eh_silogismo_disjuntivo(premissas_str, conclusao_str):
                 return True
     return False
 
-def eh_dilema_construtivo(premissas_str, conclusao_str):
+def dilema_construtivo(premissas_str, conclusao_str):
     conclusao = analisar_formula(conclusao_str)
 
     if len(premissas_str) == 3:
@@ -213,7 +231,7 @@ def eh_dilema_construtivo(premissas_str, conclusao_str):
 
     return False
 
-def eh_afirmacao_consequente(premissas_str, conclusao_str):
+def afirmacao_consequente(premissas_str, conclusao_str):
     if len(premissas_str) != 2:
         return False
     a, b = [analisar_formula(p) for p in premissas_str]
@@ -223,7 +241,7 @@ def eh_afirmacao_consequente(premissas_str, conclusao_str):
         (isinstance(b, Implies) and a == b.args[1] and conclusao == b.args[0])
     )
 
-def eh_negacao_antecedente(premissas_str, conclusao_str):
+def negacao_antecedente(premissas_str, conclusao_str):
     if len(premissas_str) != 2:
         return False
     a, b = [analisar_formula(p) for p in premissas_str]
@@ -235,7 +253,7 @@ def eh_negacao_antecedente(premissas_str, conclusao_str):
          and a.args[0] == b.args[0] and conclusao.args[0] == b.args[1])
     )
 
-def eh_simplificacao(premissas_str, conclusao_str):
+def simplificacao(premissas_str, conclusao_str):
     if len(premissas_str) != 1:
         return False
     conj = analisar_formula(premissas_str[0])
@@ -244,14 +262,14 @@ def eh_simplificacao(premissas_str, conclusao_str):
         return conclusao in conj.args
     return False
 
-def eh_conjuncao(premissas_str, conclusao_str):
+def conjuncao(premissas_str, conclusao_str):
     if len(premissas_str) != 2:
         return False
     a, b = [analisar_formula(x) for x in premissas_str]
     conclusao = analisar_formula(conclusao_str)
     return isinstance(conclusao, And) and set(conclusao.args) == {a, b}
 
-def eh_adicao(premissas_str, conclusao_str):
+def adicao(premissas_str, conclusao_str):
     if len(premissas_str) != 1:
         return False
     prem = analisar_formula(premissas_str[0])
@@ -260,7 +278,7 @@ def eh_adicao(premissas_str, conclusao_str):
         return prem in conclusao.args
     return False
 
-def eh_exportacao(premissas_str, conclusao_str):
+def exportacao(premissas_str, conclusao_str):
     if len(premissas_str) != 1:
         return False
     expr = analisar_formula(premissas_str[0])
@@ -273,7 +291,7 @@ def eh_exportacao(premissas_str, conclusao_str):
             return (conclusao.args[1].args[0] == Q and conclusao.args[1].args[1] == R)
     return False
 
-def eh_transposicao(premissas_str, conclusao_str):
+def transposicao(premissas_str, conclusao_str):
     if len(premissas_str) != 1:
         return False
     expr = analisar_formula(premissas_str[0])
@@ -284,7 +302,7 @@ def eh_transposicao(premissas_str, conclusao_str):
             return conclusao.args[0].args[0] == Q and conclusao.args[1].args[0] == P
     return False
 
-def eh_absorcao(premissas_str, conclusao_str):
+def absorcao(premissas_str, conclusao_str):
     if len(premissas_str) != 1:
         return False
     expr = analisar_formula(premissas_str[0])
@@ -296,33 +314,32 @@ def eh_absorcao(premissas_str, conclusao_str):
     return False
 
 # ---------- CLASSIFICADOR ----------
-
 def classificar_argumento(premissas_str, conclusao_str):
-    if eh_modus_ponens(premissas_str, conclusao_str):
+    if modus_ponens(premissas_str, conclusao_str):
         return "Modus Ponens"
-    if eh_modus_tollens(premissas_str, conclusao_str):
+    if modus_tollens(premissas_str, conclusao_str):
         return "Modus Tollens"
-    if eh_silogismo_hipotetico(premissas_str, conclusao_str):
+    if silogismo_hipotetico(premissas_str, conclusao_str):
         return "Silogismo Hipotético"
-    if eh_silogismo_disjuntivo(premissas_str, conclusao_str):
+    if silogismo_disjuntivo(premissas_str, conclusao_str):
         return "Silogismo Disjuntivo"
-    if eh_dilema_construtivo(premissas_str, conclusao_str):
+    if dilema_construtivo(premissas_str, conclusao_str):
         return "Dilema Construtivo"
-    if eh_afirmacao_consequente(premissas_str, conclusao_str):
+    if afirmacao_consequente(premissas_str, conclusao_str):
         return "Falácia: Afirmação do Consequente"
-    if eh_negacao_antecedente(premissas_str, conclusao_str):
+    if negacao_antecedente(premissas_str, conclusao_str):
         return "Falácia: Negação do Antecedente"
-    if eh_simplificacao(premissas_str, conclusao_str):
+    if simplificacao(premissas_str, conclusao_str):
         return "Simplificação"
-    if eh_conjuncao(premissas_str, conclusao_str):
+    if conjuncao(premissas_str, conclusao_str):
         return "Introdução da Conjunção"
-    if eh_adicao(premissas_str, conclusao_str):
+    if adicao(premissas_str, conclusao_str):
         return "Adição (Introdução da Disjunção)"
-    if eh_exportacao(premissas_str, conclusao_str):
+    if exportacao(premissas_str, conclusao_str):
         return "Exportação"
-    if eh_transposicao(premissas_str, conclusao_str):
+    if transposicao(premissas_str, conclusao_str):
         return "Transposição/Contraposição"
-    if eh_absorcao(premissas_str, conclusao_str):
+    if absorcao(premissas_str, conclusao_str):
         return "Absorção"
     return "Forma não reconhecida"
 
@@ -375,7 +392,6 @@ def gerar_prova_condicional(premissas_str, conclusao_str):
     linhas = []
     vistas = set()
 
-    # 1) adicionar premissas
     for i, f in enumerate(premissas, start=1):
         linhas.append({
             "linha": i,
@@ -391,7 +407,6 @@ def gerar_prova_condicional(premissas_str, conclusao_str):
     while mudou:
         mudou = False
 
-        # tenta aplicar MP / MT em todos os pares de linhas
         for i in range(len(linhas)):
             for j in range(len(linhas)):
                 if i == j:
@@ -405,12 +420,11 @@ def gerar_prova_condicional(premissas_str, conclusao_str):
                 indices = None
 
                 # -------- MODUS PONENS --------
-                # fi = A, fj = A -> B
                 if isinstance(fj, Implies) and fi == fj.args[0]:
                     nova_formula = fj.args[1]
                     origem_regra = "Modus Ponens"
                     indices = [linhas[i]["linha"], linhas[j]["linha"]]
-                # fj = A, fi = A -> B
+
                 elif isinstance(fi, Implies) and fj == fi.args[0]:
                     nova_formula = fi.args[1]
                     origem_regra = "Modus Ponens"
@@ -418,12 +432,11 @@ def gerar_prova_condicional(premissas_str, conclusao_str):
 
                 # -------- MODUS TOLLENS --------
                 if nova_formula is None:
-                    # fi = ~Q, fj = P -> Q
                     if isinstance(fi, Not) and isinstance(fj, Implies) and fi.args[0] == fj.args[1]:
                         nova_formula = Not(fj.args[0])
                         origem_regra = "Modus Tollens"
                         indices = [linhas[i]["linha"], linhas[j]["linha"]]
-                    # fj = ~Q, fi = P -> Q
+
                     elif isinstance(fj, Not) and isinstance(fi, Implies) and fj.args[0] == fi.args[1]:
                         nova_formula = Not(fi.args[0])
                         origem_regra = "Modus Tollens"
@@ -448,7 +461,6 @@ def gerar_prova_condicional(premissas_str, conclusao_str):
                 if nova_formula == conclusao:
                     return linhas
 
-    # não chegou na conclusão: acrescenta linha final “forma não reconhecida”
     if str(conclusao) not in vistas:
         linhas.append({
             "linha": proxima_linha,

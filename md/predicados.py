@@ -26,7 +26,7 @@ def parse_dominio(dominio_str: str):
 class Predicado:
     def __init__(self, nome, args):
         self.nome = nome
-        self.args = args  # lista de strings (variáveis ou constantes)
+        self.args = args
 
     def __repr__(self):
         args_str = ", ".join(self.args)
@@ -66,8 +66,6 @@ class BinOp:
 
 # ---------------- PARSER ----------------
 
-from pyparsing import Forward
-
 def criar_parser_predicados():
     var = Word(alphas.lower(), exact=1)
     const = Word(alphanums, min=1)
@@ -87,7 +85,6 @@ def criar_parser_predicados():
     predicado = (nome_pred + lpar + termo + Group((virg + termo)[...]) + rpar)
     predicado.setParseAction(lambda t: predicado_action([t[0]] + [t[1]] + list(t[2])))
 
-    # quantificadores: (Ax)F, (forallx)F ; (Ex)F, (existsx)F
     forall = (Literal("(A") | Literal("(forall")) + var + Literal(")")
     exists = (Literal("(E") | Literal("(exists")) + var + Literal(")")
 
@@ -146,22 +143,19 @@ def criar_parser_predicados():
 
 # ---------------- AVALIAÇÃO EM DOMÍNIO FINITO ----------------
 
-def avaliar_predicado(pred: Predicado, dominio, interpretacao, ambiente):
-    # pred.nome = "P", args = ["x"] ou ["a"]
+def avaliar_predicado(pred: Predicado, interpretacao, ambiente):
     nome = pred.nome
     args = []
     for arg in pred.args:
-        if arg in ambiente:  # variável
+        if arg in ambiente:
             args.append(ambiente[arg])
-        else:  # constante literal
+        else:
             args.append(arg)
-    # predicados unários: P(x)
     if len(args) == 1:
         d = args[0]
         verdadeiros = interpretacao.get(nome, set())
         return d in verdadeiros
     else:
-        # para simplificar: só tratamos unários neste núcleo
         raise ValueError("Somente predicados unários são suportados por enquanto.")
 
 def avaliar_formula(formula, dominio, interpretacao, ambiente):
@@ -229,8 +223,6 @@ def gerar_interpretacoes(dominio, nomes_pred_unarios):
     dominio_set = list(dominio)
     todas_interps = []
 
-    # para cada predicado, todas as escolhas de subconjunto de domínio
-    # subconjuntos de um conjunto de n elementos: 2^n possibilidades
     subconjuntos = []
     for _ in nomes_pred_unarios:
         pred_subs = []
@@ -271,7 +263,6 @@ def verificar_argumento_predicado(dominio_str, premissas_str, conclusao_str):
 
     for interp in interps:
         ambiente = {}
-        # avalia premissas
         todas_premissas_v = True
         for p in premissas:
             if not avaliar_formula(p, dominio, interp, ambiente.copy()):
@@ -281,14 +272,12 @@ def verificar_argumento_predicado(dominio_str, premissas_str, conclusao_str):
         if not todas_premissas_v:
             continue
 
-        # avalia conclusão
         if not avaliar_formula(conclusao, dominio, interp, ambiente.copy()):
             contraexemplos.append(interp)
 
     valido = len(contraexemplos) == 0
     return valido, contraexemplos, dominio, nomes_pred
 
-# cria o parser global de fórmulas de predicados
 _parser_pred = criar_parser_predicados()
 
 def parse_formula_predicado(s: str):
@@ -299,7 +288,6 @@ def parse_formula_predicado(s: str):
     return _parser_pred.parseString(s.strip(), parseAll=True)[0]
 
 def explicar_regra_predicados(premissas_str, conclusao_str):
-    # Normaliza conclusão sem espaços
     c = conclusao_str.replace(" ", "")
 
     # ------------ CASO: DUAS PREMISSAS (Silogismo de Aristóteles) ------------
@@ -315,7 +303,7 @@ def explicar_regra_predicados(premissas_str, conclusao_str):
            and p2[2:-1] == c[2:-1]:
             return "Silogismo de Aristóteles: de (∀x)(H(x)→M(x)) e H(c) concluímos M(c)."
 
-    # ------------ CASO: UMA PREMISSA (regras 5 e 6, existencial) ------------
+    # ------------ CASO: UMA PREMISSA ------------
     if len(premissas_str) == 1:
         p = premissas_str[0].replace(" ", "")
 
@@ -359,5 +347,4 @@ def explicar_regra_predicados(premissas_str, conclusao_str):
                 if corpo == "P(x)" and p.startswith("P(") and p.endswith(")"):
                     return "Generalização existencial: de P(c) concluímos (∃x)P(x)."
 
-    # Se nada bateu, texto genérico
     return "Não foi possível identificar automaticamente uma regra de quantificadores."

@@ -4,8 +4,8 @@ import os
 from tkinter import messagebox
 
 prova_atual = None
-contexto_atual = None  # "PROPOSICOES" ou "PREDICADOS"
-enunciado_atual = None  # Texto do enunciado para exportação
+contexto_atual = None
+enunciado_atual = None
 
 # ======== IMPORTA LÓGICA DE PROPOSIÇÕES =========
 from proposicao import (
@@ -32,7 +32,7 @@ conclusao_entry = None
 saida_text = None
 qtd_premissas_menu = None
 
-# widgets de predicados
+
 dominio_entry = None
 premissas_pred_entries = []  # várias premissas
 conclusao_pred_entry = None
@@ -69,11 +69,11 @@ def atualizar_premissas_pred(qtd_str: str):
             width=300,
             placeholder_text=f"Premissa {i + 1} (ex: (Ax)P(x))",
         )
-        # linhas 5,6,7,...
+
         entry.grid(row=5 + i, column=0, padx=15, pady=(10,0),sticky="w")
         premissas_pred_entries.append(entry)
 
-def verificar_argumento():
+def validar_premissas():
     global prova_atual, contexto_atual, enunciado_atual
     contexto_atual = "PROPOSICOES"
     prova_atual = None
@@ -114,7 +114,6 @@ def verificar_argumento():
                 + [formatar_formula(conclusao_simbolica)]
         )
 
-        # largura = maior label do cabeçalho, mas no mínimo 5
         largura_col = max(5, max(len(col) for col in cabecalho))
 
         def fmt_cab(col):
@@ -218,7 +217,6 @@ def verificar_predicado():
         botao_exportar_latex.configure(state="disabled")
         return
 
-    # CASO ESPECIAL: De Morgan (apenas quando há UMA premissa)
     if len(premissas) == 1:
         p_sem_espaco = premissas[0].replace(" ", "")
         c_sem_espaco = conclusao_str.replace(" ", "")
@@ -335,10 +333,8 @@ def mostrar_widgets_predicados():
     dominio_label.grid(row=3, column=0, padx=15, pady=(10, 0), sticky="w")
     dominio_entry.grid(row=3, column=0, padx=165,pady=(11, 0), sticky="w")
 
-    # label das premissas
     premissa_pred_label.grid(row=4, column=0, padx=15, pady=(10, 0), sticky="w")
 
-    # optionmenu de quantidade
     qtd_premissas_pred_menu.grid(
         row=4, column=0, padx=(200, 0), pady=(10, 0), sticky="w"
     )
@@ -354,10 +350,10 @@ def mostrar_widgets_predicados():
 
     glossario_label.grid(row=6, column=0, padx=350, pady=(10, 0), sticky="w")
 
-    botao_exportar_latex.grid(
+    '''botao_exportar_latex.grid(
         row=10, column=0, padx=180, pady=(10, 0), sticky="w"
     )
-    botao_exportar_latex.configure(state="disabled")
+    botao_exportar_latex.configure(state="disabled")''' #comentei porque não deu certo, não ta exportando para predicados
 
 def esconder_widgets_predicados():
     dominio_label.grid_forget()
@@ -370,7 +366,7 @@ def esconder_widgets_predicados():
     conclusao_pred_entry.grid_forget()
     botao_verificar_pred.grid_forget()
     glossario_label.grid_forget()
-    botao_exportar_latex.grid_forget()
+    #botao_exportar_latex.grid_forget() #comentei porque não deu certo, não ta exportando para predicados
 
 def escolha_callback(valor: str):
     numero = int(valor.split(".")[0])
@@ -515,7 +511,7 @@ conclusao_entry = ctk.CTkEntry(
 botao_verificar = ctk.CTkButton(
     janela_principal,
     text="Verificar argumento",
-    command=verificar_argumento,
+    command=validar_premissas,
 )
 
 botao_morgan = ctk.CTkButton(
